@@ -1,56 +1,46 @@
-import "./rightbar.css";
-import { Users } from "../../dummyData";
-import Online from "../online/Online";
-import { useContext, useEffect, useState } from "react";
-import axios from "axios";
+import React, { useContext, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+import axios from "axios";
 import { AuthContext } from "../../context/AuthContext";
 import { Add, Remove } from "@mui/icons-material";
+import "./rightbar.css";
+import Online from "../online/Online";
 
 export default function Rightbar({ user }) {
-  
   const PF = process.env.REACT_APP_PUBLIC_FOLDER;
-  const [friends, setFriends] = useState([]);
   const { user: currentUser, dispatch } = useContext(AuthContext);
-  // console.log("Hello babu"+ currentUser._id);
+  const [friends, setFriends] = useState([]);
   const [followed, setFollowed] = useState(
-    currentUser.followings.includes(user?.id)
+    currentUser.followings.includes(user?._id) // Check user?._id
   );
-  
+
   useEffect(() => {
-    if(user)
-        {
-    getFriends();
-  }
+    const getFriends = async () => {
+      try {
+        if (!user) {
+          // Handle the case where user is null
+          console.error("User is null.");
+          return;
+        }
+
+        if (!user._id) {
+          // Handle the case where user._id is undefined or null
+          console.error("User ID is undefined or null.");
+          return;
+        }
+
+        const response = await axios.get(`/users/friends/${user._id}`);
+        setFriends(response.data);
+      } catch (error) {
+        console.error(error);
+      }
+    };
+
+    if (user) {
+      getFriends();
+    }
   }, [user]);
 
-  const getFriends = async () => {
-    try {
-      const response = await fetch(`/users/friends/${user?._id}`, {
-        method: "GET",
-        headers: {"Content-Type":"application/json"},
-      });
-  
-      if (!response.ok) {
-        throw new Error(`HTTP error! Status: ${response.status}`);
-      }
-  
-      const friendList = await response.json();
-      setFriends(friendList);
-    } catch (error) {
-      console.error(error);
-    }
-  };
-  
-  // const getFriends = async () => {
-  //   try {
-  //     const friendList = await axios.get("/users/friends/" + user?._id);
-  //     setFriends(friendList.data);
-      
-  //   } catch (err) {
-  //    console.log(err);
-  //   }
-  // };
   const handleClick = async () => {
     try {
       if (followed) {
@@ -66,29 +56,35 @@ export default function Rightbar({ user }) {
       }
       setFollowed(!followed);
     } catch (err) {
+      console.error(err);
     }
   };
-  
+
+  // Render the HomeRightbar component
   const HomeRightbar = () => {
     return (
       <>
         <div className="birthdayContainer">
-          <img className="birthdayImg" src="assets/gift.png" alt="" />
+          <img className="birthdayImg" src="/assets/gift.png" alt="" />
           <span className="birthdayText">
-            <b>Pola Foster</b> and <b>3 other friends</b> have a birhday today.
+            <b>Pola Foster</b> and <b>3 other friends</b> have a birthday today.
           </span>
         </div>
-        <img className="rightbarAd" src="assets/ad.png" alt="" />
+        <img className="rightbarAd" src="/assets/ad.png" alt="" />
         <h4 className="rightbarTitle">Online Friends</h4>
-        <ul className="rightbarFriendList">
-          {Users.map((u) => (
-            <Online key={u.id} user={u} />
-          ))}
-        </ul>
+        {/* Render online friends only if user is defined and is an array */}
+        {user && Array.isArray(user) && (
+          <ul className="rightbarFriendList">
+            {user.map((u) => (
+              <Online key={u.id} user={u} />
+            ))}
+          </ul>
+        )}
       </>
     );
   };
 
+  // Render the ProfileRightbar component
   const ProfileRightbar = () => {
     return (
       <>
@@ -113,7 +109,7 @@ export default function Rightbar({ user }) {
             <span className="rightbarInfoValue">
               {user.relationship === 1
                 ? "Single"
-                : user.relationship === 1
+                : user.relationship === 2
                 ? "Married"
                 : "-"}
             </span>
@@ -123,15 +119,16 @@ export default function Rightbar({ user }) {
         <div className="rightbarFollowings">
           {friends.map((friend) => (
             <Link
-              to={"/profile/" + friend.username}
+              key={friend._id}
+              to={`/profile/${friend.username}`}
               style={{ textDecoration: "none" }}
             >
               <div className="rightbarFollowing">
                 <img
                   src={
                     friend.profilePicture
-                      ? PF +"person/"+ friend.profilePicture
-                      : PF + "person/noAvatar.png"
+                      ? PF + "/person/" + friend.profilePicture
+                      : PF + "/person/noAvatar.png"
                   }
                   alt=""
                   className="rightbarFollowingImg"
@@ -144,6 +141,7 @@ export default function Rightbar({ user }) {
       </>
     );
   };
+
   return (
     <div className="rightbar">
       <div className="rightbarWrapper">
