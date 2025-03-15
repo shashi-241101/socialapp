@@ -1,28 +1,35 @@
-const express = require("express");
+import express from 'express';
+import mongoose from 'mongoose';
+import dotenv from 'dotenv';
+import helmet from 'helmet';
+import morgan from 'morgan';
+import multer from 'multer';
+import userRoute from './routes/users.js';
+import authRoute from './routes/auth.js';
+import postRoute from './routes/posts.js';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+// Recreate __dirname
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
 const app = express();
-const mongoose = require("mongoose");
-const dotenv = require("dotenv");
-const helmet = require("helmet");
-const morgan = require("morgan");
-const multer = require("multer");
-const userRoute = require("./routes/users");
-const authRoute = require("./routes/auth");
-const postRoute = require("./routes/posts");
-const router = express.Router();
-const path = require("path");
 
 dotenv.config();
 
-mongoose.connect(
-  process.env.MONGO_URL,
-  { useNewUrlParser: true, useUnifiedTopology: true },
-  () => {
-    console.log("Connected to MongoDB");
-  }
-);
+const Port = process.env.PORT || 8800;
+
+try {
+  await mongoose.connect(process.env.MONGO_URL);
+  console.log("Connected to MongoDB");
+} catch (err) {
+  console.log(err);
+}
+
 app.use("/images", express.static(path.join(__dirname, "public/images")));
 
-//middleware
+// Middleware
 app.use(express.json());
 app.use(helmet());
 app.use(morgan("common"));
@@ -39,7 +46,7 @@ const storage = multer.diskStorage({
 const upload = multer({ storage: storage });
 app.post("/api/upload", upload.single("file"), (req, res) => {
   try {
-    return res.status(200).json("File uploded successfully");
+    return res.status(200).json("File uploaded successfully");
   } catch (error) {
     console.error(error);
   }
@@ -49,6 +56,6 @@ app.use("/api/auth", authRoute);
 app.use("/api/users", userRoute);
 app.use("/api/posts", postRoute);
 
-app.listen(8800, () => {
+app.listen(Port, () => {
   console.log("Backend server is running!");
 });
